@@ -1,0 +1,1802 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nila - Sacred Calendar</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --black: #080808;
+    --white: #f0ede6;
+    --mid: #77706a;
+    --accent: #c8b89a;
+    --divider: rgba(240,237,230,0.1);
+    --silver: #c0c0c0;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    height: 100%;
+  }
+
+  body {
+    background: var(--black);
+    color: var(--white);
+    font-family: 'Inter', sans-serif;
+    font-weight: 300;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.7;
+  }
+
+  header {
+    padding: 1.5rem 1.5rem 1rem;
+    border-bottom: 1px solid var(--divider);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    background: var(--black);
+    z-index: 100;
+  }
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+  }
+
+  .crescent { width: 28px; height: 28px; flex-shrink: 0; }
+
+  .wordmark {
+    font-family: 'Inter', sans-serif;
+    font-size: 1.5rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    color: var(--white);
+    line-height: 1;
+  }
+
+  .nav-buttons {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .nav-btn {
+    background: transparent;
+    border: 1px solid var(--silver);
+    color: var(--silver);
+    padding: 0.35rem 0.8rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    transition: all 0.15s;
+  }
+  .nav-btn:hover { background: rgba(192,192,192,0.1); color: var(--white); border-color: var(--white); }
+  .nav-btn.active { background: var(--silver); color: var(--black); border-color: var(--silver); }
+
+  .settings-btn {
+    background: none;
+    border: 1px solid var(--silver);
+    color: var(--silver);
+    width: 36px;
+    height: 36px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+  }
+  .settings-btn:hover { background: rgba(192,192,192,0.1); color: var(--white); border-color: var(--white); }
+
+  .wheel-icon {
+    width: 16px;
+    height: 16px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 1.5;
+  }
+
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(8,8,8,0.8);
+    z-index: 1000;
+    backdrop-filter: blur(2px);
+  }
+  .modal-overlay.active { display: block; }
+
+  .modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.95);
+    background: var(--black);
+    border: 1px solid var(--silver);
+    border-radius: 8px;
+    width: 90%;
+    max-width: 600px;
+    max-height: 85vh;
+    z-index: 1001;
+    display: flex;
+    flex-direction: column;
+    opacity: 0;
+    transition: all 0.3s;
+    pointer-events: none;
+  }
+  .modal-overlay.active .modal {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+    pointer-events: auto;
+  }
+
+  .modal-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--divider);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .modal-title {
+    font-family: 'Inter', sans-serif;
+    font-size: 1.3rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    color: var(--white);
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .modal-close {
+    background: none;
+    border: none;
+    color: var(--silver);
+    cursor: pointer;
+    font-size: 1.5rem;
+    transition: color 0.15s;
+  }
+  .modal-close:hover { color: var(--white); }
+
+  .modal-content {
+    padding: 1.5rem;
+    overflow-y: auto;
+    flex: 1;
+  }
+
+  .modal-footer {
+    padding: 1.5rem;
+    border-top: 1px solid var(--divider);
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+  }
+
+  .setting-section {
+    margin-bottom: 2rem;
+  }
+
+  .setting-section:last-child { margin-bottom: 0; }
+
+  .setting-title {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--silver);
+    letter-spacing: 0.05em;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    text-transform: uppercase;
+  }
+
+  .setting-title-icon {
+    font-size: 1.2rem;
+  }
+
+  .setting-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+  }
+
+  .input-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .input-label {
+    font-size: 0.65rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--mid);
+    font-weight: 500;
+  }
+
+  .input-field {
+    background: transparent;
+    border: 1px solid var(--silver);
+    color: var(--white);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.75rem;
+    padding: 0.5rem 0.8rem;
+    outline: none;
+    transition: all 0.15s;
+    border-radius: 3px;
+  }
+  .input-field::placeholder { color: var(--mid); }
+  .input-field:focus { border-color: var(--white); background: rgba(192,192,192,0.05); }
+
+  .input-hint {
+    font-size: 0.6rem;
+    color: var(--mid);
+    letter-spacing: 0.05em;
+    margin-top: 0.2rem;
+  }
+
+  .checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.6rem;
+    background: rgba(192,192,192,0.02);
+    border: 1px solid var(--silver);
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .checkbox-row:hover { background: rgba(192,192,192,0.08); border-color: var(--white); }
+
+  .checkbox-row input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+    cursor: pointer;
+    accent-color: var(--silver);
+  }
+
+  .checkbox-label {
+    font-size: 0.7rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--white);
+    cursor: pointer;
+    flex: 1;
+    font-weight: 500;
+  }
+
+  .integration-card {
+    border: none;
+    border-radius: 4px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    background: transparent;
+    transition: all 0.15s;
+  }
+
+  .integration-header {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    margin-bottom: 0.8rem;
+  }
+
+  .integration-icon {
+    font-size: 1.5rem;
+  }
+
+  .integration-name {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--white);
+    letter-spacing: 0.05em;
+  }
+
+  .integration-status {
+    font-size: 0.55rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--mid);
+    margin-top: 0.2rem;
+    font-weight: 500;
+  }
+
+  .btn-primary {
+    padding: 0.5rem 1.2rem;
+    background: var(--silver);
+    color: var(--black);
+    border: none;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s;
+    border-radius: 3px;
+  }
+  .btn-primary:hover { background: var(--white); }
+
+  .btn-secondary {
+    padding: 0.5rem 1.2rem;
+    background: transparent;
+    color: var(--silver);
+    border: 1px solid var(--silver);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .btn-secondary:hover { background: rgba(192,192,192,0.1); color: var(--white); border-color: var(--white); }
+
+  .btn-test {
+    padding: 0.35rem 0.8rem;
+    background: transparent;
+    color: var(--silver);
+    border: 1px solid var(--silver);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+  .btn-test:hover { background: rgba(192,192,192,0.1); color: var(--white); border-color: var(--white); }
+
+  .btn-test svg { width: 12px; height: 12px; }
+
+  .download-icon {
+    width: 10px;
+    height: 10px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2;
+  }
+
+  .controls {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--divider);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    position: sticky;
+    top: 65px;
+    background: var(--black);
+    z-index: 99;
+  }
+
+  .control-row {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .filter-pills { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+
+  .pill {
+    padding: 0.3rem 0.9rem;
+    border: 1px solid rgba(192,192,192,0.3);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.65rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    background: transparent;
+    color: var(--mid);
+    transition: all 0.15s;
+    user-select: none;
+  }
+  .pill:hover { border-color: var(--silver); color: var(--silver); background: rgba(192,192,192,0.05); }
+  .pill.active { background: var(--silver); color: var(--black); border-color: var(--silver); }
+
+  .year-nav { display: flex; align-items: center; gap: 0.7rem; }
+
+  .year-btn {
+    background: none;
+    border: 1px solid var(--silver);
+    color: var(--silver);
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.25rem 0.6rem;
+    transition: all 0.15s;
+    border-radius: 3px;
+  }
+  .year-btn:hover { color: var(--white); border-color: var(--white); background: rgba(192,192,192,0.05); }
+
+  .year-display {
+    font-family: 'Inter', sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--white);
+    min-width: 3rem;
+    text-align: center;
+  }
+
+  main { 
+    padding: 1.5rem 0.8rem 5rem;
+  }
+
+  .page { display: none; }
+  .page.active { display: block; }
+
+  .months-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1px;
+  }
+
+  .month-block { padding: 1rem; border: 1px solid var(--divider); margin-bottom: 0.5rem; }
+
+  .month-name {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--silver);
+    letter-spacing: 0.08em;
+    margin-bottom: 0.7rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    text-transform: uppercase;
+  }
+
+  .month-sub {
+    font-size: 0.56rem;
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    color: var(--mid);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .date-entries { display: flex; flex-direction: column; }
+
+  .date-entry {
+    display: grid;
+    grid-template-columns: 5px 2rem 1.8rem 1fr auto auto;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0;
+    border-bottom: 1px solid var(--divider);
+    opacity: 0;
+    transform: translateY(3px);
+    animation: up 0.3s forwards;
+  }
+  .date-entry:last-child { border-bottom: none; }
+
+  @keyframes up { to { opacity: 1; transform: translateY(0); } }
+
+  .entry-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+  .dot-pournami { background: var(--white); box-shadow: 0 0 5px rgba(240,237,230,0.5); }
+  .dot-amavasai { background: #3a3a3a; box-shadow: 0 0 4px rgba(58,58,58,0.4); }
+  .dot-shasti { background: #e5c4a0; }
+  .dot-pradhosham { background: #8b6f47; }
+
+  .entry-date {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--white);
+  }
+
+  .entry-day {
+    font-size: 0.56rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--mid);
+    font-weight: 500;
+  }
+
+  .entry-info { display: flex; flex-direction: column; gap: 0.12rem; }
+
+  .entry-type {
+    font-size: 0.62rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+  .type-pournami { color: rgba(240,237,230,0.85); }
+  .type-amavasai { color: #666; }
+  .type-shasti { color: #d4a574; }
+  .type-pradhosham { color: #8a7060; }
+
+  .entry-meta {
+    font-size: 0.54rem;
+    letter-spacing: 0.05em;
+    color: var(--mid);
+    font-weight: 500;
+  }
+
+  .icon-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    background: transparent;
+    cursor: pointer;
+    text-decoration: none;
+    color: var(--silver);
+    opacity: 0;
+    transition: all 0.15s;
+    flex-shrink: 0;
+    border: none;
+    padding: 0;
+  }
+  .date-entry:hover .icon-btn { opacity: 1; }
+  .rahu-day-block:hover .icon-btn { opacity: 1; }
+  .icon-btn:hover { color: var(--white); }
+  .icon-btn svg { width: 13px; height: 13px; }
+
+  .rahu-days-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+
+  .rahu-week-label {
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--silver);
+    padding: 0.6rem 0;
+    border-bottom: 1px solid var(--divider);
+    margin-bottom: 0.8rem;
+  }
+
+  .rahu-day-block {
+    padding: 0.6rem;
+    border: 1px solid var(--divider);
+    display: grid;
+    grid-template-columns: 4px 3.4rem 1.6rem 1fr auto auto;
+    align-items: center;
+    gap: 0.5rem;
+    opacity: 0;
+    transform: translateY(2px);
+    animation: up 0.3s forwards;
+  }
+
+  .rahu-dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--silver);
+    flex-shrink: 0;
+  }
+
+  .rahu-day-date {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--white);
+    white-space: nowrap;
+  }
+
+  .rahu-day-dayname {
+    font-size: 0.54rem;
+    color: var(--mid);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 500;
+  }
+
+  .rahu-info-text {
+    font-size: 0.62rem;
+    color: var(--white);
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+  }
+
+  .rahu-meta {
+    font-size: 0.54rem;
+    color: var(--mid);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  .legend {
+    padding: 1rem;
+    border-top: 1px solid var(--divider);
+    display: flex;
+    gap: 1.2rem;
+    flex-wrap: wrap;
+    position: sticky;
+    bottom: 0;
+    background: var(--black);
+    z-index: 100;
+  }
+  .legend-item {
+    display: flex; align-items: center; gap: 0.4rem;
+    font-size: 0.54rem; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--mid);
+    font-weight: 500;
+  }
+  .legend-dot { width: 4px; height: 4px; border-radius: 50%; }
+
+  .notification {
+    position: fixed;
+    bottom: 80px;
+    left: 1rem;
+    right: 1rem;
+    padding: 1rem;
+    background: var(--silver);
+    color: var(--black);
+    border-radius: 4px;
+    font-size: 0.75rem;
+    z-index: 1000;
+    animation: slideUp 0.3s;
+    font-weight: 500;
+  }
+
+  @keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  @media (max-width: 640px) {
+    header, main, .legend { padding-left: 1rem; padding-right: 1rem; }
+    .wordmark { font-size: 1.3rem; }
+    .date-entry { grid-template-columns: 5px 1.8rem 1.6rem 1fr auto auto; gap: 0.4rem; }
+    .modal { width: 95%; max-width: 500px; }
+    .nav-btn { padding: 0.3rem 0.6rem; font-size: 0.6rem; }
+  }
+
+  /* AI Search Layer */
+  .ai-bar {
+    padding: 0.9rem 1.5rem;
+    border-bottom: 1px solid var(--divider);
+    background: var(--black);
+    position: sticky;
+    top: 65px;
+    z-index: 98;
+  }
+
+  .ai-input-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  .ai-moon-icon {
+    font-size: 0.9rem;
+    flex-shrink: 0;
+    color: var(--silver);
+    opacity: 0.7;
+  }
+
+  .ai-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid rgba(192,192,192,0.25);
+    color: var(--white);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 300;
+    letter-spacing: 0.04em;
+    padding: 0.4rem 0;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .ai-input::placeholder { color: var(--mid); font-style: italic; }
+  .ai-input:focus { border-bottom-color: var(--silver); }
+
+  .ai-ask-btn {
+    background: transparent;
+    border: 1px solid rgba(192,192,192,0.3);
+    color: var(--silver);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.6rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 0.35rem 0.8rem;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .ai-ask-btn:hover { background: rgba(192,192,192,0.08); border-color: var(--silver); color: var(--white); }
+  .ai-ask-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  .ai-response {
+    display: none;
+    margin-top: 0.8rem;
+    padding: 0.8rem 1rem;
+    border-left: 1px solid var(--silver);
+    font-size: 0.7rem;
+    font-weight: 300;
+    line-height: 1.7;
+    letter-spacing: 0.03em;
+    color: rgba(240,237,230,0.75);
+    animation: fadeIn 0.3s ease;
+  }
+  .ai-response.visible { display: block; }
+  .ai-response strong { color: var(--white); font-weight: 500; }
+
+  .ai-thinking {
+    display: none;
+    margin-top: 0.6rem;
+    font-size: 0.6rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--mid);
+    font-weight: 500;
+    font-style: italic;
+  }
+  .ai-thinking.visible { display: block; }
+
+  .ai-suggestions {
+    display: flex;
+    gap: 0.4rem;
+    margin-top: 0.6rem;
+    flex-wrap: wrap;
+  }
+
+  .ai-suggestion {
+    font-size: 0.58rem;
+    letter-spacing: 0.06em;
+    color: var(--mid);
+    border: 1px solid var(--divider);
+    padding: 0.25rem 0.6rem;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-weight: 500;
+    font-style: italic;
+  }
+  .ai-suggestion:hover { color: var(--silver); border-color: rgba(192,192,192,0.3); }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <svg class="crescent" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <filter id="moonGlow">
+          <feGaussianBlur stdDeviation="1" result="coloredBlur"/>
+          <feMerge>
+            <feMergeNode in="coloredBlur"/>
+            <feMergeNode in="SourceGraphic"/>
+          </feMerge>
+        </filter>
+      </defs>
+      <circle cx="16" cy="16" r="10" fill="#c0c0c0" opacity="0.85" filter="url(#moonGlow)"/>
+      <circle cx="20" cy="12" r="10" fill="#080808" opacity="1"/>
+    </svg>
+    <div class="wordmark">NILA</div>
+  </div>
+  <div style="display:flex;gap:0.5rem;align-items:center;">
+    <div class="nav-buttons">
+      <button class="nav-btn active" onclick="switchPage('calendar')">Calendar</button>
+      <button class="nav-btn" onclick="switchPage('rahu')">Rahu Kala</button>
+    </div>
+    <button class="settings-btn" onclick="openSettings()" title="Settings">
+      <svg class="wheel-icon" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="3"></circle>
+        <circle cx="12" cy="12" r="9"></circle>
+        <line x1="12" y1="3" x2="12" y2="1"></line>
+        <line x1="12" y1="23" x2="12" y2="21"></line>
+        <line x1="21" y1="12" x2="23" y2="12"></line>
+        <line x1="1" y1="12" x2="3" y2="12"></line>
+        <line x1="18.64" y1="5.36" x2="20.07" y2="3.93"></line>
+        <line x1="3.93" y1="20.07" x2="5.36" y2="18.64"></line>
+        <line x1="18.64" y1="18.64" x2="20.07" y2="20.07"></line>
+        <line x1="3.93" y1="3.93" x2="5.36" y2="5.36"></line>
+      </svg>
+    </button>
+  </div>
+</header>
+
+<!-- AI Search Bar -->
+<div class="ai-bar">
+  <div class="ai-input-row">
+    <span class="ai-moon-icon">☽</span>
+    <input class="ai-input" id="aiInput" type="text" placeholder="Ask anything… when is the next Pournami? what should I avoid this week?" />
+    <button class="ai-ask-btn" id="aiBtn" onclick="askNila()">Ask</button>
+  </div>
+  <div class="ai-suggestions" id="aiSuggestions">
+    <span class="ai-suggestion" onclick="quickAsk(this)">Next Pournami?</span>
+    <span class="ai-suggestion" onclick="quickAsk(this)">Auspicious days this month?</span>
+    <span class="ai-suggestion" onclick="quickAsk(this)">What is Rahu Kala today?</span>
+    <span class="ai-suggestion" onclick="quickAsk(this)">Explain Pradhosham</span>
+  </div>
+  <div class="ai-response" id="aiResponse"></div>
+</div>
+
+<div class="controls">
+  <div class="control-row">
+    <div class="filter-pills">
+      <div class="pill pournami active" onclick="toggleFilter('pournami',this)">Pournami</div>
+      <div class="pill amavasai active" onclick="toggleFilter('amavasai',this)">Amavasai</div>
+      <div class="pill shasti active" onclick="toggleFilter('shasti',this)">Shasti</div>
+      <div class="pill pradhosham active" onclick="toggleFilter('pradhosham',this)">Pradhosham</div>
+    </div>
+    <div class="year-nav">
+      <button class="year-btn" onclick="changeYear(-1)">←</button>
+      <div class="year-display" id="yearDisplay">2025</div>
+      <button class="year-btn" onclick="changeYear(1)">→</button>
+    </div>
+  </div>
+</div>
+
+<main>
+  <div class="page active" id="calendar-page">
+    <div class="months-grid" id="monthsGrid"></div>
+  </div>
+
+  <div class="page" id="rahu-page">
+    <div class="rahu-days-grid" id="rahuGrid"></div>
+  </div>
+</main>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot dot-pournami"></div>Full Moon</div>
+  <div class="legend-item"><div class="legend-dot dot-amavasai"></div>No Moon</div>
+  <div class="legend-item"><div class="legend-dot dot-shasti"></div>Shasti</div>
+  <div class="legend-item"><div class="legend-dot dot-pradhosham"></div>Pradhosham</div>
+</div>
+
+<!-- Settings Modal -->
+<div class="modal-overlay" id="settingsModal" onclick="closeSettings(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-title">
+        <svg class="wheel-icon" style="width:20px;height:20px;" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="3"></circle>
+          <circle cx="12" cy="12" r="9"></circle>
+          <line x1="12" y1="3" x2="12" y2="1"></line>
+          <line x1="12" y1="23" x2="12" y2="21"></line>
+          <line x1="21" y1="12" x2="23" y2="12"></line>
+          <line x1="1" y1="12" x2="3" y2="12"></line>
+          <line x1="18.64" y1="5.36" x2="20.07" y2="3.93"></line>
+          <line x1="3.93" y1="20.07" x2="5.36" y2="18.64"></line>
+          <line x1="18.64" y1="18.64" x2="20.07" y2="20.07"></line>
+          <line x1="3.93" y1="3.93" x2="5.36" y2="5.36"></line>
+        </svg>
+        Settings
+      </div>
+      <button class="modal-close" onclick="closeSettings()">✕</button>
+    </div>
+    
+    <div class="modal-content">
+      <div class="setting-section">
+        <div class="setting-title">
+          <span class="setting-title-icon">
+            <svg viewBox="0 0 24 24" fill="currentColor" style="width:18px;height:18px;">
+              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+            </svg>
+          </span>
+          WhatsApp Notifications
+        </div>
+        
+        <div class="integration-card">
+          <div class="integration-header">
+            <div class="integration-icon">
+              <svg viewBox="0 0 24 24" fill="currentColor" style="width:20px;height:20px;">
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+              </svg>
+            </div>
+            <div>
+              <div class="integration-name">WhatsApp</div>
+              <div class="integration-status">Send individual messages to your phone</div>
+            </div>
+          </div>
+
+          <div class="setting-group">
+            <div class="input-row">
+              <label class="input-label">Phone Number</label>
+              <input class="input-field" id="userPhone" type="tel" placeholder="+91 98765 43210"/>
+              <div class="input-hint">Include country code</div>
+            </div>
+
+            <div class="input-row">
+              <label class="input-label">Event Reminder Time</label>
+              <input class="input-field" id="whatsappTime" type="time" value="08:00"/>
+              <div class="input-hint">Time for daily message</div>
+            </div>
+
+            <button class="btn-test" onclick="testWhatsApp()" style="align-self: flex-start; margin-top: 0.5rem;">
+              <svg viewBox="0 0 24 24" fill="currentColor" style="width:10px;height:10px;">
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+              </svg>
+              Test Message
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="setting-section">
+        <div class="setting-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:16px;height:16px;display:inline-block;margin-right:0.4rem;">
+            <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
+          Calendar
+        </div>
+        
+        <div class="integration-card">
+          <div class="setting-group">
+            <div class="input-row">
+              <label class="input-label">Event Reminder Time</label>
+              <input class="input-field" id="gcalTime" type="time" value="08:00"/>
+              <div class="input-hint">Events will be created as 15-minute reminders</div>
+            </div>
+
+            <div style="display: flex; gap: 0.8rem; flex-wrap: wrap;">
+              <button class="btn-secondary" onclick="downloadICS()">
+                <svg class="download-icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>
+                Download ICS (this year)
+              </button>
+              <button class="btn-secondary" onclick="downloadAllYearsICS()">
+                <svg class="download-icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>
+                Download ICS (all years)
+              </button>
+              <button class="btn-secondary" onclick="copyICSUrl()">📋 Copy Calendar Link</button>
+            </div>
+
+            <div id="icsUrlContainer" style="display:none; margin-top: 1rem; padding: 0.8rem; background: rgba(192,192,192,0.05); border: 1px solid var(--silver); border-radius: 3px;">
+              <div style="font-size: 0.6rem; color: var(--silver); letter-spacing: 0.08em; margin-bottom: 0.6rem; text-transform: uppercase; font-weight: 600;">📋 ICS Feed URL</div>
+              <div id="icsUrl" style="font-size: 0.65rem; color: var(--white); word-break: break-all; font-family: monospace; background: rgba(0,0,0,0.3); padding: 0.6rem; border-radius: 2px;"></div>
+              <div style="font-size: 0.55rem; color: var(--mid); letter-spacing: 0.05em; margin-top: 0.6rem; font-weight: 500;">This link only works once nila-calendar-all.ics actually exists at that address. Click "Download ICS (all years)" above, then upload that exact file next to index.html on wherever you're hosting this page. After that, paste this link in Google Calendar Settings → Add calendar → From URL.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="setting-section">
+        <div class="setting-title">
+          <span class="setting-title-icon">
+            <svg class="wheel-icon" style="width:18px;height:18px;" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="3"></circle>
+              <circle cx="12" cy="12" r="9"></circle>
+              <line x1="12" y1="3" x2="12" y2="1"></line>
+              <line x1="12" y1="23" x2="12" y2="21"></line>
+              <line x1="21" y1="12" x2="23" y2="12"></line>
+              <line x1="1" y1="12" x2="3" y2="12"></line>
+              <line x1="18.64" y1="5.36" x2="20.07" y2="3.93"></line>
+              <line x1="3.93" y1="20.07" x2="5.36" y2="18.64"></line>
+              <line x1="18.64" y1="18.64" x2="20.07" y2="20.07"></line>
+              <line x1="3.93" y1="3.93" x2="5.36" y2="5.36"></line>
+            </svg>
+          </span>
+          How It Works
+        </div>
+        
+        <div style="font-size: 0.65rem; line-height: 1.6; color: var(--mid); letter-spacing: 0.05em; font-weight: 500;">
+          <p style="margin-bottom: 0.8rem;"><strong style="color: var(--white);">WhatsApp:</strong> Click the WhatsApp icon on any date to send a message with that date's information.</p>
+          <p style="margin-bottom: 0.8rem;"><strong style="color: var(--white);">Calendar:</strong> Click the calendar icon to create an event for that date in Google Calendar.</p>
+          <p style="margin-bottom: 0.8rem;"><strong style="color: var(--white);">Message Format:</strong> "Today is the (date) of this (month), (year). It's a (day of the week). Today is (Tamil month) (Valar/Thei) Pirai (event type)."</p>
+          <p><strong style="color: var(--white);">Rahu Kala:</strong> Switch to the Rahu Kala page to view inauspicious times for every day of the year.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-primary" onclick="closeSettings()">Done</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SACRED = {
+  2025: [
+    {date:'2025-01-13',type:'pournami',name:'Pournami',tamil:'Thai',pirai:'valar'},
+    {date:'2025-02-12',type:'pournami',name:'Pournami',tamil:'Maasi',pirai:'valar'},
+    {date:'2025-03-13',type:'pournami',name:'Pournami',tamil:'Panguni',pirai:'valar'},
+    {date:'2025-04-12',type:'pournami',name:'Pournami',tamil:'Chithirai',pirai:'valar'},
+    {date:'2025-05-12',type:'pournami',name:'Pournami',tamil:'Vaikasi',pirai:'valar'},
+    {date:'2025-06-11',type:'pournami',name:'Pournami',tamil:'Aani',pirai:'valar'},
+    {date:'2025-07-10',type:'pournami',name:'Pournami',tamil:'Aadi',pirai:'valar'},
+    {date:'2025-08-09',type:'pournami',name:'Pournami',tamil:'Aavani',pirai:'valar'},
+    {date:'2025-09-07',type:'pournami',name:'Pournami',tamil:'Purattasi',pirai:'valar'},
+    {date:'2025-10-07',type:'pournami',name:'Pournami',tamil:'Aippasi',pirai:'valar'},
+    {date:'2025-11-05',type:'pournami',name:'Pournami',tamil:'Karthigai',pirai:'valar'},
+    {date:'2025-12-04',type:'pournami',name:'Pournami',tamil:'Margazhi',pirai:'valar'},
+    {date:'2025-01-29',type:'amavasai',name:'Amavasai',tamil:'Thai',pirai:'thei'},
+    {date:'2025-02-28',type:'amavasai',name:'Amavasai',tamil:'Maasi',pirai:'thei'},
+    {date:'2025-03-29',type:'amavasai',name:'Amavasai',tamil:'Panguni',pirai:'thei'},
+    {date:'2025-04-27',type:'amavasai',name:'Amavasai',tamil:'Chithirai',pirai:'thei'},
+    {date:'2025-05-26',type:'amavasai',name:'Amavasai',tamil:'Vaikasi',pirai:'thei'},
+    {date:'2025-06-25',type:'amavasai',name:'Amavasai',tamil:'Aani',pirai:'thei'},
+    {date:'2025-07-24',type:'amavasai',name:'Amavasai',tamil:'Aadi',pirai:'thei'},
+    {date:'2025-08-23',type:'amavasai',name:'Amavasai',tamil:'Aavani',pirai:'thei'},
+    {date:'2025-09-21',type:'amavasai',name:'Amavasai',tamil:'Purattasi',pirai:'thei'},
+    {date:'2025-10-21',type:'amavasai',name:'Amavasai',tamil:'Aippasi',pirai:'thei'},
+    {date:'2025-11-20',type:'amavasai',name:'Amavasai',tamil:'Karthigai',pirai:'thei'},
+    {date:'2025-12-20',type:'amavasai',name:'Amavasai',tamil:'Margazhi',pirai:'thei'},
+    {date:'2025-01-05',type:'shasti',name:'Shasti',tamil:'Margazhi',pirai:'valar'},
+    {date:'2025-01-20',type:'shasti',name:'Shasti',tamil:'Thai',pirai:'thei'},
+    {date:'2025-02-04',type:'shasti',name:'Shasti',tamil:'Thai',pirai:'valar'},
+    {date:'2025-02-18',type:'shasti',name:'Shasti',tamil:'Maasi',pirai:'thei'},
+    {date:'2025-03-05',type:'shasti',name:'Shasti',tamil:'Maasi',pirai:'valar'},
+    {date:'2025-03-20',type:'shasti',name:'Shasti',tamil:'Panguni',pirai:'thei'},
+    {date:'2025-04-03',type:'shasti',name:'Shasti',tamil:'Panguni',pirai:'valar'},
+    {date:'2025-04-18',type:'shasti',name:'Shasti',tamil:'Chithirai',pirai:'thei'},
+    {date:'2025-05-02',type:'shasti',name:'Shasti',tamil:'Chithirai',pirai:'valar'},
+    {date:'2025-05-17',type:'shasti',name:'Shasti',tamil:'Vaikasi',pirai:'thei'},
+    {date:'2025-06-01',type:'shasti',name:'Shasti',tamil:'Vaikasi',pirai:'valar'},
+    {date:'2025-06-16',type:'shasti',name:'Shasti',tamil:'Aani',pirai:'thei'},
+    {date:'2025-06-30',type:'shasti',name:'Shasti',tamil:'Aani',pirai:'valar'},
+    {date:'2025-07-16',type:'shasti',name:'Shasti',tamil:'Aadi',pirai:'thei'},
+    {date:'2025-07-30',type:'shasti',name:'Shasti',tamil:'Aadi',pirai:'valar'},
+    {date:'2025-08-14',type:'shasti',name:'Shasti',tamil:'Aavani',pirai:'thei'},
+    {date:'2025-08-28',type:'shasti',name:'Shasti',tamil:'Aavani',pirai:'valar'},
+    {date:'2025-09-13',type:'shasti',name:'Shasti',tamil:'Purattasi',pirai:'thei'},
+    {date:'2025-09-27',type:'shasti',name:'Shasti',tamil:'Purattasi',pirai:'valar'},
+    {date:'2025-10-13',type:'shasti',name:'Shasti',tamil:'Aippasi',pirai:'thei'},
+    {date:'2025-10-27',type:'shasti',name:'Shasti',tamil:'Aippasi',pirai:'valar'},
+    {date:'2025-11-11',type:'shasti',name:'Shasti',tamil:'Karthigai',pirai:'thei'},
+    {date:'2025-11-25',type:'shasti',name:'Shasti',tamil:'Karthigai',pirai:'valar'},
+    {date:'2025-12-10',type:'shasti',name:'Shasti',tamil:'Margazhi',pirai:'thei'},
+    {date:'2025-12-24',type:'shasti',name:'Shasti',tamil:'Margazhi',pirai:'valar'},
+    {date:'2025-01-10',type:'pradhosham',name:'Pradhosham',tamil:'Margazhi',pirai:'valar'},
+    {date:'2025-01-25',type:'pradhosham',name:'Pradhosham',tamil:'Thai',pirai:'thei'},
+    {date:'2025-02-09',type:'pradhosham',name:'Pradhosham',tamil:'Thai',pirai:'valar'},
+    {date:'2025-02-24',type:'pradhosham',name:'Pradhosham',tamil:'Maasi',pirai:'thei'},
+    {date:'2025-03-10',type:'pradhosham',name:'Pradhosham',tamil:'Maasi',pirai:'valar'},
+    {date:'2025-03-26',type:'pradhosham',name:'Pradhosham',tamil:'Panguni',pirai:'thei'},
+    {date:'2025-04-08',type:'pradhosham',name:'Pradhosham',tamil:'Panguni',pirai:'valar'},
+    {date:'2025-04-24',type:'pradhosham',name:'Pradhosham',tamil:'Chithirai',pirai:'thei'},
+    {date:'2025-05-08',type:'pradhosham',name:'Pradhosham',tamil:'Chithirai',pirai:'valar'},
+    {date:'2025-05-23',type:'pradhosham',name:'Pradhosham',tamil:'Vaikasi',pirai:'thei'},
+    {date:'2025-06-07',type:'pradhosham',name:'Pradhosham',tamil:'Vaikasi',pirai:'valar'},
+    {date:'2025-06-22',type:'pradhosham',name:'Pradhosham',tamil:'Aani',pirai:'thei'},
+    {date:'2025-07-06',type:'pradhosham',name:'Pradhosham',tamil:'Aani',pirai:'valar'},
+    {date:'2025-07-21',type:'pradhosham',name:'Pradhosham',tamil:'Aadi',pirai:'thei'},
+    {date:'2025-08-05',type:'pradhosham',name:'Pradhosham',tamil:'Aadi',pirai:'valar'},
+    {date:'2025-08-20',type:'pradhosham',name:'Pradhosham',tamil:'Aavani',pirai:'thei'},
+    {date:'2025-09-03',type:'pradhosham',name:'Pradhosham',tamil:'Aavani',pirai:'valar'},
+    {date:'2025-09-18',type:'pradhosham',name:'Pradhosham',tamil:'Purattasi',pirai:'thei'},
+    {date:'2025-10-03',type:'pradhosham',name:'Pradhosham',tamil:'Purattasi',pirai:'valar'},
+    {date:'2025-10-18',type:'pradhosham',name:'Pradhosham',tamil:'Aippasi',pirai:'thei'},
+    {date:'2025-11-01',type:'pradhosham',name:'Pradhosham',tamil:'Aippasi',pirai:'valar'},
+    {date:'2025-11-16',type:'pradhosham',name:'Pradhosham',tamil:'Karthigai',pirai:'thei'},
+    {date:'2025-12-01',type:'pradhosham',name:'Pradhosham',tamil:'Karthigai',pirai:'valar'},
+    {date:'2025-12-16',type:'pradhosham',name:'Pradhosham',tamil:'Margazhi',pirai:'thei'},
+    {date:'2025-12-31',type:'pradhosham',name:'Pradhosham',tamil:'Margazhi',pirai:'valar'},
+  ],
+  2026: [
+    {date:'2026-01-03',type:'pournami',name:'Pournami',tamil:'Margazhi',pirai:'valar'},
+    {date:'2026-02-01',type:'pournami',name:'Pournami',tamil:'Thai',pirai:'valar'},
+    {date:'2026-03-03',type:'pournami',name:'Pournami',tamil:'Maasi',pirai:'valar'},
+    {date:'2026-04-01',type:'pournami',name:'Pournami',tamil:'Panguni',pirai:'valar'},
+    {date:'2026-05-01',type:'pournami',name:'Pournami',tamil:'Chithirai',pirai:'valar'},
+    {date:'2026-05-30',type:'pournami',name:'Pournami',tamil:'Vaikasi',pirai:'valar'},
+    {date:'2026-06-29',type:'pournami',name:'Pournami',tamil:'Aani',pirai:'valar'},
+    {date:'2026-07-29',type:'pournami',name:'Pournami',tamil:'Aadi',pirai:'valar'},
+    {date:'2026-08-27',type:'pournami',name:'Pournami',tamil:'Aavani',pirai:'valar'},
+    {date:'2026-09-26',type:'pournami',name:'Pournami',tamil:'Purattasi',pirai:'valar'},
+    {date:'2026-10-25',type:'pournami',name:'Pournami',tamil:'Aippasi',pirai:'valar'},
+    {date:'2026-11-24',type:'pournami',name:'Pournami',tamil:'Karthigai',pirai:'valar'},
+    {date:'2026-12-23',type:'pournami',name:'Pournami',tamil:'Margazhi',pirai:'valar'},
+    {date:'2026-01-18',type:'amavasai',name:'Amavasai',tamil:'Thai',pirai:'thei'},
+    {date:'2026-02-17',type:'amavasai',name:'Amavasai',tamil:'Maasi',pirai:'thei'},
+    {date:'2026-03-19',type:'amavasai',name:'Amavasai',tamil:'Panguni',pirai:'thei'},
+    {date:'2026-04-17',type:'amavasai',name:'Amavasai',tamil:'Chithirai',pirai:'thei'},
+    {date:'2026-05-16',type:'amavasai',name:'Amavasai',tamil:'Vaikasi',pirai:'thei'},
+    {date:'2026-06-15',type:'amavasai',name:'Amavasai',tamil:'Aani',pirai:'thei'},
+    {date:'2026-07-14',type:'amavasai',name:'Amavasai',tamil:'Aadi',pirai:'thei'},
+    {date:'2026-08-12',type:'amavasai',name:'Amavasai',tamil:'Aavani',pirai:'thei'},
+    {date:'2026-09-11',type:'amavasai',name:'Amavasai',tamil:'Purattasi',pirai:'thei'},
+    {date:'2026-10-11',type:'amavasai',name:'Amavasai',tamil:'Aippasi',pirai:'thei'},
+    {date:'2026-11-09',type:'amavasai',name:'Amavasai',tamil:'Karthigai',pirai:'thei'},
+    {date:'2026-12-09',type:'amavasai',name:'Amavasai',tamil:'Margazhi',pirai:'thei'},
+    {date:'2026-01-06',type:'shasti',name:'Shasti',tamil:'Margazhi',pirai:'thei'},
+    {date:'2026-01-24',type:'shasti',name:'Shasti',tamil:'Thai',pirai:'valar'},
+    {date:'2026-02-05',type:'shasti',name:'Shasti',tamil:'Thai',pirai:'thei'},
+    {date:'2026-02-22',type:'shasti',name:'Shasti',tamil:'Maasi',pirai:'valar'},
+    {date:'2026-03-07',type:'shasti',name:'Shasti',tamil:'Maasi',pirai:'thei'},
+    {date:'2026-03-24',type:'shasti',name:'Shasti',tamil:'Panguni',pirai:'valar'},
+    {date:'2026-04-05',type:'shasti',name:'Shasti',tamil:'Panguni',pirai:'thei'},
+    {date:'2026-04-22',type:'shasti',name:'Shasti',tamil:'Chithirai',pirai:'valar'},
+    {date:'2026-05-05',type:'shasti',name:'Shasti',tamil:'Chithirai',pirai:'thei'},
+    {date:'2026-05-21',type:'shasti',name:'Shasti',tamil:'Vaikasi',pirai:'valar'},
+    {date:'2026-06-04',type:'shasti',name:'Shasti',tamil:'Vaikasi',pirai:'thei'},
+    {date:'2026-06-20',type:'shasti',name:'Shasti',tamil:'Aani',pirai:'valar'},
+    {date:'2026-07-03',type:'shasti',name:'Shasti',tamil:'Aani',pirai:'thei'},
+    {date:'2026-07-19',type:'shasti',name:'Shasti',tamil:'Aadi',pirai:'valar'},
+    {date:'2026-08-02',type:'shasti',name:'Shasti',tamil:'Aadi',pirai:'thei'},
+    {date:'2026-08-18',type:'shasti',name:'Shasti',tamil:'Aavani',pirai:'valar'},
+    {date:'2026-09-01',type:'shasti',name:'Shasti',tamil:'Aavani',pirai:'thei'},
+    {date:'2026-09-16',type:'shasti',name:'Shasti',tamil:'Purattasi',pirai:'valar'},
+    {date:'2026-10-01',type:'shasti',name:'Shasti',tamil:'Purattasi',pirai:'thei'},
+    {date:'2026-10-15',type:'shasti',name:'Shasti',tamil:'Aippasi',pirai:'valar'},
+    {date:'2026-11-13',type:'shasti',name:'Shasti',tamil:'Karthigai',pirai:'valar'},
+    {date:'2026-12-12',type:'shasti',name:'Shasti',tamil:'Margazhi',pirai:'valar'},
+    {date:'2026-01-16',type:'pradhosham',name:'Pradhosham',tamil:'Thai',pirai:'thei'},
+    {date:'2026-01-30',type:'pradhosham',name:'Pradhosham',tamil:'Thai',pirai:'valar'},
+    {date:'2026-02-14',type:'pradhosham',name:'Pradhosham',tamil:'Maasi',pirai:'thei'},
+    {date:'2026-03-01',type:'pradhosham',name:'Pradhosham',tamil:'Maasi',pirai:'valar'},
+    {date:'2026-03-16',type:'pradhosham',name:'Pradhosham',tamil:'Panguni',pirai:'thei'},
+    {date:'2026-03-31',type:'pradhosham',name:'Pradhosham',tamil:'Panguni',pirai:'valar'},
+    {date:'2026-04-15',type:'pradhosham',name:'Pradhosham',tamil:'Chithirai',pirai:'thei'},
+    {date:'2026-04-29',type:'pradhosham',name:'Pradhosham',tamil:'Chithirai',pirai:'valar'},
+    {date:'2026-05-15',type:'pradhosham',name:'Pradhosham',tamil:'Vaikasi',pirai:'thei'},
+    {date:'2026-05-29',type:'pradhosham',name:'Pradhosham',tamil:'Vaikasi',pirai:'valar'},
+    {date:'2026-06-13',type:'pradhosham',name:'Pradhosham',tamil:'Aani',pirai:'thei'},
+    {date:'2026-06-27',type:'pradhosham',name:'Pradhosham',tamil:'Aani',pirai:'valar'},
+    {date:'2026-07-13',type:'pradhosham',name:'Pradhosham',tamil:'Aadi',pirai:'thei'},
+    {date:'2026-07-26',type:'pradhosham',name:'Pradhosham',tamil:'Aadi',pirai:'valar'},
+    {date:'2026-08-11',type:'pradhosham',name:'Pradhosham',tamil:'Aavani',pirai:'thei'},
+    {date:'2026-08-25',type:'pradhosham',name:'Pradhosham',tamil:'Aavani',pirai:'valar'},
+    {date:'2026-09-10',type:'pradhosham',name:'Pradhosham',tamil:'Purattasi',pirai:'thei'},
+    {date:'2026-09-24',type:'pradhosham',name:'Pradhosham',tamil:'Purattasi',pirai:'valar'},
+    {date:'2026-10-09',type:'pradhosham',name:'Pradhosham',tamil:'Aippasi',pirai:'thei'},
+    {date:'2026-10-23',type:'pradhosham',name:'Pradhosham',tamil:'Aippasi',pirai:'valar'},
+    {date:'2026-11-22',type:'pradhosham',name:'Pradhosham',tamil:'Karthigai',pirai:'valar'},
+    {date:'2026-12-22',type:'pradhosham',name:'Pradhosham',tamil:'Margazhi',pirai:'valar'},
+  ],
+  2027: [
+    {date:'2027-01-22',type:'pournami',name:'Pournami',tamil:'Thai',pirai:'valar'},
+    {date:'2027-02-20',type:'pournami',name:'Pournami',tamil:'Maasi',pirai:'valar'},
+    {date:'2027-03-22',type:'pournami',name:'Pournami',tamil:'Panguni',pirai:'valar'},
+    {date:'2027-04-21',type:'pournami',name:'Pournami',tamil:'Chithirai',pirai:'valar'},
+    {date:'2027-05-21',type:'pournami',name:'Pournami',tamil:'Vaikasi',pirai:'valar'},
+    {date:'2027-06-19',type:'pournami',name:'Pournami',tamil:'Aani',pirai:'valar'},
+    {date:'2027-07-19',type:'pournami',name:'Pournami',tamil:'Aadi',pirai:'valar'},
+    {date:'2027-08-17',type:'pournami',name:'Pournami',tamil:'Aavani',pirai:'valar'},
+    {date:'2027-09-16',type:'pournami',name:'Pournami',tamil:'Aavani',pirai:'valar'},
+    {date:'2027-10-16',type:'pournami',name:'Pournami',tamil:'Purattasi',pirai:'valar'},
+    {date:'2027-11-14',type:'pournami',name:'Pournami',tamil:'Aippasi',pirai:'valar'},
+    {date:'2027-12-14',type:'pournami',name:'Pournami',tamil:'Karthigai',pirai:'valar'},
+    {date:'2027-01-07',type:'amavasai',name:'Amavasai',tamil:'Margazhi',pirai:'thei'},
+    {date:'2027-02-06',type:'amavasai',name:'Amavasai',tamil:'Thai',pirai:'thei'},
+    {date:'2027-03-08',type:'amavasai',name:'Amavasai',tamil:'Maasi',pirai:'thei'},
+    {date:'2027-04-06',type:'amavasai',name:'Amavasai',tamil:'Panguni',pirai:'thei'},
+    {date:'2027-05-06',type:'amavasai',name:'Amavasai',tamil:'Chithirai',pirai:'thei'},
+    {date:'2027-06-04',type:'amavasai',name:'Amavasai',tamil:'Vaikasi',pirai:'thei'},
+    {date:'2027-07-04',type:'amavasai',name:'Amavasai',tamil:'Aani',pirai:'thei'},
+    {date:'2027-08-02',type:'amavasai',name:'Amavasai',tamil:'Aadi',pirai:'thei'},
+    {date:'2027-08-31',type:'amavasai',name:'Amavasai',tamil:'Aavani',pirai:'thei'},
+    {date:'2027-09-29',type:'amavasai',name:'Amavasai',tamil:'Purattasi',pirai:'thei'},
+    {date:'2027-10-29',type:'amavasai',name:'Amavasai',tamil:'Aippasi',pirai:'thei'},
+    {date:'2027-11-27',type:'amavasai',name:'Amavasai',tamil:'Karthigai',pirai:'thei'},
+    {date:'2027-12-28',type:'amavasai',name:'Amavasai',tamil:'Margazhi',pirai:'thei'},
+    {date:'2027-01-11',type:'shasti',name:'Shasti',tamil:'Margazhi',pirai:'thei'},
+    {date:'2027-01-27',type:'shasti',name:'Shasti',tamil:'Thai',pirai:'valar'},
+    {date:'2027-02-10',type:'shasti',name:'Shasti',tamil:'Thai',pirai:'thei'},
+    {date:'2027-02-25',type:'shasti',name:'Shasti',tamil:'Maasi',pirai:'valar'},
+    {date:'2027-03-11',type:'shasti',name:'Shasti',tamil:'Maasi',pirai:'thei'},
+    {date:'2027-03-27',type:'shasti',name:'Shasti',tamil:'Panguni',pirai:'valar'},
+    {date:'2027-04-10',type:'shasti',name:'Shasti',tamil:'Panguni',pirai:'thei'},
+    {date:'2027-04-25',type:'shasti',name:'Shasti',tamil:'Chithirai',pirai:'valar'},
+    {date:'2027-05-09',type:'shasti',name:'Shasti',tamil:'Chithirai',pirai:'thei'},
+    {date:'2027-05-25',type:'shasti',name:'Shasti',tamil:'Vaikasi',pirai:'valar'},
+    {date:'2027-06-08',type:'shasti',name:'Shasti',tamil:'Vaikasi',pirai:'thei'},
+    {date:'2027-06-23',type:'shasti',name:'Shasti',tamil:'Aani',pirai:'valar'},
+    {date:'2027-07-07',type:'shasti',name:'Shasti',tamil:'Aani',pirai:'thei'},
+    {date:'2027-07-23',type:'shasti',name:'Shasti',tamil:'Aadi',pirai:'valar'},
+    {date:'2027-08-06',type:'shasti',name:'Shasti',tamil:'Aadi',pirai:'thei'},
+    {date:'2027-08-21',type:'shasti',name:'Shasti',tamil:'Aavani',pirai:'valar'},
+    {date:'2027-09-04',type:'shasti',name:'Shasti',tamil:'Aavani',pirai:'thei'},
+    {date:'2027-09-20',type:'shasti',name:'Shasti',tamil:'Purattasi',pirai:'valar'},
+    {date:'2027-10-04',type:'shasti',name:'Shasti',tamil:'Purattasi',pirai:'thei'},
+    {date:'2027-10-19',type:'shasti',name:'Shasti',tamil:'Aippasi',pirai:'valar'},
+    {date:'2027-11-02',type:'shasti',name:'Shasti',tamil:'Aippasi',pirai:'thei'},
+    {date:'2027-11-18',type:'shasti',name:'Shasti',tamil:'Karthigai',pirai:'valar'},
+    {date:'2027-12-01',type:'shasti',name:'Shasti',tamil:'Karthigai',pirai:'thei'},
+    {date:'2027-12-17',type:'shasti',name:'Shasti',tamil:'Margazhi',pirai:'valar'},
+    {date:'2027-01-05',type:'pradhosham',name:'Pradhosham',tamil:'Margazhi',pirai:'thei'},
+    {date:'2027-01-20',type:'pradhosham',name:'Pradhosham',tamil:'Thai',pirai:'valar'},
+    {date:'2027-02-03',type:'pradhosham',name:'Pradhosham',tamil:'Thai',pirai:'thei'},
+    {date:'2027-02-18',type:'pradhosham',name:'Pradhosham',tamil:'Maasi',pirai:'valar'},
+    {date:'2027-03-05',type:'pradhosham',name:'Pradhosham',tamil:'Maasi',pirai:'thei'},
+    {date:'2027-03-20',type:'pradhosham',name:'Pradhosham',tamil:'Panguni',pirai:'valar'},
+    {date:'2027-04-04',type:'pradhosham',name:'Pradhosham',tamil:'Panguni',pirai:'thei'},
+    {date:'2027-04-18',type:'pradhosham',name:'Pradhosham',tamil:'Chithirai',pirai:'valar'},
+    {date:'2027-05-04',type:'pradhosham',name:'Pradhosham',tamil:'Chithirai',pirai:'thei'},
+    {date:'2027-05-17',type:'pradhosham',name:'Pradhosham',tamil:'Vaikasi',pirai:'valar'},
+    {date:'2027-06-02',type:'pradhosham',name:'Pradhosham',tamil:'Vaikasi',pirai:'thei'},
+    {date:'2027-06-16',type:'pradhosham',name:'Pradhosham',tamil:'Aani',pirai:'valar'},
+    {date:'2027-07-01',type:'pradhosham',name:'Pradhosham',tamil:'Aani',pirai:'thei'},
+    {date:'2027-07-15',type:'pradhosham',name:'Pradhosham',tamil:'Aani',pirai:'valar'},
+    {date:'2027-07-31',type:'pradhosham',name:'Pradhosham',tamil:'Aadi',pirai:'thei'},
+    {date:'2027-08-14',type:'pradhosham',name:'Pradhosham',tamil:'Aadi',pirai:'thei'},
+    {date:'2027-08-29',type:'pradhosham',name:'Pradhosham',tamil:'Aavani',pirai:'thei'},
+    {date:'2027-09-13',type:'pradhosham',name:'Pradhosham',tamil:'Aavani',pirai:'thei'},
+    {date:'2027-09-28',type:'pradhosham',name:'Pradhosham',tamil:'Purattasi',pirai:'valar'},
+    {date:'2027-10-12',type:'pradhosham',name:'Pradhosham',tamil:'Purattasi',pirai:'thei'},
+    {date:'2027-10-27',type:'pradhosham',name:'Pradhosham',tamil:'Aippasi',pirai:'valar'},
+    {date:'2027-11-11',type:'pradhosham',name:'Pradhosham',tamil:'Aippasi',pirai:'thei'},
+    {date:'2027-11-26',type:'pradhosham',name:'Pradhosham',tamil:'Karthigai',pirai:'valar'},
+    {date:'2027-12-10',type:'pradhosham',name:'Pradhosham',tamil:'Karthigai',pirai:'thei'},
+    {date:'2027-12-25',type:'pradhosham',name:'Pradhosham',tamil:'Margazhi',pirai:'valar'},
+  ]
+};
+
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const TAMIL_PAIR = ['Thai · Maasi','Maasi · Panguni','Panguni · Chithirai','Chithirai · Vaikasi','Vaikasi · Aani','Aani · Aadi','Aadi · Aavani','Aavani · Purattasi','Purattasi · Aippasi','Aippasi · Karthigai','Karthigai · Margazhi','Margazhi · Thai'];
+
+const RAHU_KALA_TIMES = {
+  0: '08:00-09:30',
+  1: '09:30-11:00',
+  2: '12:00-13:30',
+  3: '15:00-16:30',
+  4: '13:30-15:00',
+  5: '10:30-12:00',
+  6: '16:30-18:00'
+};
+
+let currentYear = 2025;
+let activeFilters = new Set(['pournami','amavasai','shasti','pradhosham']);
+
+const WA_SVG = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>`;
+const CALENDAR_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`;
+
+function switchPage(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(page + '-page').classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+  event.target.classList.add('active');
+  if (page === 'rahu') {
+    setTimeout(() => renderRahuKala(), 100);
+  } else {
+    setTimeout(() => render(), 100);
+  }
+}
+
+function openSettings() {
+  document.getElementById('settingsModal').classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeSettings(event) {
+  if (event && event.target.id !== 'settingsModal') return;
+  document.getElementById('settingsModal').classList.remove('active');
+  document.body.style.overflow = 'auto';
+}
+
+function todayStr() {
+  const t = new Date();
+  return `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
+}
+
+function toggleFilter(type, el) {
+  activeFilters.has(type) ? activeFilters.delete(type) : activeFilters.add(type);
+  el.classList.toggle('active');
+  render();
+}
+
+function changeYear(d) {
+  const ny = currentYear + d;
+  if (SACRED[ny]) { currentYear = ny; document.getElementById('yearDisplay').textContent = ny; render(); }
+}
+
+function showNotification(msg) {
+  const notif = document.createElement('div');
+  notif.className = 'notification';
+  notif.textContent = msg;
+  document.body.appendChild(notif);
+  setTimeout(() => notif.remove(), 3000);
+}
+
+function testWhatsApp() {
+  const testMsg = `Test message - Nila calendar is working!`;
+  window.open(`https://wa.me/?text=${encodeURIComponent(testMsg)}`, '_blank');
+}
+
+function waLink(e){
+  const msg = `${e.name}\n${new Date(e.date+'T00:00:00').toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}\n${e.tamil} Masam · ${e.pirai==='valar'?'Valar Pirai':'Thei Pirai'}`;
+  return `https://wa.me/?text=${encodeURIComponent(msg)}`;
+}
+
+function addDays(dateStr, days){
+  const [y,m,d] = dateStr.split('-').map(Number);
+  const dt = new Date(Date.UTC(y, m-1, d));
+  dt.setUTCDate(dt.getUTCDate()+days);
+  return `${dt.getUTCFullYear()}${String(dt.getUTCMonth()+1).padStart(2,'0')}${String(dt.getUTCDate()).padStart(2,'0')}`;
+}
+
+function addMinutes(dateStr, hours, minutes, addMins){
+  const [y,m,d] = dateStr.split('-').map(Number);
+  const dt = new Date(Date.UTC(y, m-1, d, hours, minutes));
+  dt.setUTCMinutes(dt.getUTCMinutes()+addMins);
+  const ds = `${dt.getUTCFullYear()}${String(dt.getUTCMonth()+1).padStart(2,'0')}${String(dt.getUTCDate()).padStart(2,'0')}`;
+  const ts = `${String(dt.getUTCHours()).padStart(2,'0')}${String(dt.getUTCMinutes()).padStart(2,'0')}00`;
+  return `${ds}T${ts}`;
+}
+
+function gcLink(e){
+  // Build the date strings directly from entry.date (already YYYY-MM-DD).
+  // Going through new Date(e.date+'T00:00:00') + toISOString() shifts the
+  // date back a day for anyone east of UTC (e.g. IST), which was making
+  // events show up on the wrong day in Google Calendar.
+  const start = e.date.replace(/-/g,'');
+  const end = addDays(e.date, 1);
+  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(e.name+' · '+e.tamil+' · '+(e.pirai==='valar'?'Valar Pirai':'Thei Pirai'))}&dates=${start}/${end}`;
+}
+
+function downloadICS() {
+  const yearData = SACRED[currentYear] || [];
+  const gcalTime = document.getElementById('gcalTime').value || '08:00';
+  const [hours, minutes] = gcalTime.split(':').map(Number);
+  const dtstamp = new Date().toISOString().replace(/[-:]/g,'').split('.')[0] + 'Z';
+
+  let lines = ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Nila Sacred Calendar//EN','CALSCALE:GREGORIAN'];
+  yearData.forEach(entry => {
+    if (activeFilters.has(entry.type)) {
+      const dateStr = entry.date.replace(/-/g, '');
+      const startTime = `${dateStr}T${String(hours).padStart(2,'0')}${String(minutes).padStart(2,'0')}00`;
+      const endTime = addMinutes(entry.date, hours, minutes, 60); // 1-hour reminder block
+      lines.push('BEGIN:VEVENT');
+      lines.push(`UID:nila-${entry.date}@nilacalendar`);
+      lines.push(`DTSTAMP:${dtstamp}`);
+      lines.push(`DTSTART:${startTime}`);
+      lines.push(`DTEND:${endTime}`);
+      lines.push(`SUMMARY:${entry.name} - ${entry.tamil}`);
+      lines.push('END:VEVENT');
+    }
+  });
+  lines.push('END:VCALENDAR');
+
+  // ICS spec requires CRLF line endings; plain \n gets skipped by some parsers (e.g. Outlook).
+  // RFC 5545 also requires a trailing CRLF after the FINAL line. join('\r\n') alone leaves
+  // "END:VCALENDAR" with no line break after it at all - Google Calendar's import parser
+  // is strict about this and silently fails ("Processed 0 events") on a file like that.
+  const icsContent = lines.join('\r\n') + '\r\n';
+
+  const blob = new Blob([icsContent], { type: 'text/calendar' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `nila-calendar-${currentYear}.ics`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  // Revoking the blob URL immediately (same tick as click()) can cut the download off
+  // before some browsers actually start reading it. A short delay lets it finish first.
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  showNotification('✅ ICS file downloaded');
+}
+
+// Builds the same VCALENDAR text as downloadICS(), but across every year in SACRED
+// and always named nila-calendar-all.ics. This is the actual file the "Copy Calendar
+// Link" URL below points to - it has to be uploaded to sit next to this HTML file
+// wherever it's hosted, or the subscribe link will 404 no matter what the code does.
+function buildAllYearsICS() {
+  const gcalTime = document.getElementById('gcalTime').value || '08:00';
+  const [hours, minutes] = gcalTime.split(':').map(Number);
+  const dtstamp = new Date().toISOString().replace(/[-:]/g,'').split('.')[0] + 'Z';
+
+  let lines = ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Nila Sacred Calendar//EN','CALSCALE:GREGORIAN','METHOD:PUBLISH'];
+  Object.keys(SACRED).sort().forEach(year => {
+    SACRED[year].forEach(entry => {
+      if (activeFilters.has(entry.type)) {
+        const dateStr = entry.date.replace(/-/g, '');
+        const startTime = `${dateStr}T${String(hours).padStart(2,'0')}${String(minutes).padStart(2,'0')}00`;
+        const endTime = addMinutes(entry.date, hours, minutes, 60);
+        lines.push('BEGIN:VEVENT');
+        lines.push(`UID:nila-${entry.date}@nilacalendar`);
+        lines.push(`DTSTAMP:${dtstamp}`);
+        lines.push(`DTSTART:${startTime}`);
+        lines.push(`DTEND:${endTime}`);
+        lines.push(`SUMMARY:${entry.name} - ${entry.tamil}`);
+        lines.push('END:VEVENT');
+      }
+    });
+  });
+  lines.push('END:VCALENDAR');
+  return lines.join('\r\n') + '\r\n';
+}
+
+function downloadAllYearsICS() {
+  const icsContent = buildAllYearsICS();
+  const blob = new Blob([icsContent], { type: 'text/calendar' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `nila-calendar-all.ics`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  showNotification('✅ Full calendar downloaded - upload this next to index.html on your host');
+}
+
+// Works out the URL to nila-calendar-all.ics automatically, based on wherever
+// this page is currently being served from. No editing needed after hosting,
+// as long as the .ics file sits in the same folder as this HTML file.
+function getICSSubscribeURL() {
+  const dir = window.location.pathname.replace(/[^/]*$/, '');
+  return `${window.location.origin}${dir}nila-calendar-all.ics`;
+}
+
+function copyICSUrl() {
+  const url = getICSSubscribeURL();
+  const container = document.getElementById('icsUrlContainer');
+  const urlDiv = document.getElementById('icsUrl');
+  urlDiv.style.whiteSpace = 'normal';
+  urlDiv.textContent = url;
+  container.style.display = 'block';
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url)
+      .then(() => showNotification('📋 Calendar link copied — paste it into Google Calendar'))
+      .catch(() => showNotification('📋 Link ready below, copy manually'));
+  } else {
+    showNotification('📋 Link ready below, copy manually');
+  }
+}
+
+function render() {
+  const grid = document.getElementById('monthsGrid');
+  const yearData = SACRED[currentYear] || [];
+  const today = todayStr();
+  grid.innerHTML = '';
+
+  for (let m = 0; m < 12; m++) {
+    const monthDates = yearData.filter(e => {
+      const d = new Date(e.date + 'T00:00:00');
+      return d.getMonth() === m && activeFilters.has(e.type);
+    }).sort((a,b) => a.date.localeCompare(b.date));
+
+    const block = document.createElement('div');
+    block.className = 'month-block';
+    block.innerHTML = `<div class="month-name"><span>${MONTHS[m].toUpperCase()}</span><span class="month-sub">${TAMIL_PAIR[m]}</span></div><div class="date-entries" id="m${m}"></div>`;
+    grid.appendChild(block);
+    const container = block.querySelector(`#m${m}`);
+
+    if (!monthDates.length) {
+      container.innerHTML = `<div style="font-size: 0.6rem; color: var(--mid); padding: 0.4rem 0;">—</div>`;
+      continue;
+    }
+
+    monthDates.forEach((entry, i) => {
+      const d = new Date(entry.date + 'T00:00:00');
+      const isToday = entry.date === today;
+      const piraiLabel = entry.pirai === 'valar' ? 'Valar' : 'Thei';
+      const row = document.createElement('div');
+      row.className = 'date-entry';
+      row.style.animationDelay = `${i * 0.04}s`;
+      row.innerHTML = `<div class="entry-dot dot-${entry.type}"></div><div class="entry-date">${d.getDate()}</div><div class="entry-day">${DAYS[d.getDay()].substring(0,3).toUpperCase()}</div><div class="entry-info"><div class="entry-type type-${entry.type}">${entry.name}${isToday ? ' TODAY' : ''}</div><div class="entry-meta">${entry.tamil} · ${piraiLabel} Pirai</div></div><button class="icon-btn" data-wa="${waLink(entry)}" data-type="wa">${WA_SVG}</button><button class="icon-btn" data-gc="${gcLink(entry)}" data-type="gc">${CALENDAR_SVG}</button>`;
+      
+      const buttons = row.querySelectorAll('button.icon-btn');
+      buttons.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          if (btn.dataset.type === 'wa') {
+            window.open(btn.dataset.wa, '_blank');
+          } else {
+            window.open(btn.dataset.gc, '_blank');
+          }
+        });
+      });
+      
+      container.appendChild(row);
+    });
+  }
+}
+
+// Derives the real Tamil month + pirai for ANY date by anchoring against the actual
+// Pournami/Amavasai dates already in SACRED - the same method used to add new dates -
+// instead of a fixed guess-formula that doesn't track the real lunar calendar.
+function getAllAnchors() {
+  const anchors = [];
+  Object.keys(SACRED).forEach(year => {
+    SACRED[year].forEach(e => {
+      if (e.type === 'pournami' || e.type === 'amavasai') {
+        anchors.push([e.date, e.type === 'amavasai' ? 'A' : 'P', e.tamil]);
+      }
+    });
+  });
+  return anchors.sort((a,b) => a[0].localeCompare(b[0]));
+}
+
+function tamilInfoForDate(dateStr, anchors) {
+  const exact = anchors.find(a => a[0] === dateStr);
+  if (exact) return { tamil: exact[2], pirai: exact[1] === 'P' ? 'Valar' : 'Thei' };
+  let prev = null, next = null;
+  for (const a of anchors) {
+    if (a[0] < dateStr) prev = a;
+    if (a[0] > dateStr && !next) next = a;
+  }
+  if (!prev) prev = anchors[0];
+  if (!next) next = anchors[anchors.length - 1];
+  const pirai = prev[1] === 'A' ? 'Valar' : 'Thei';
+  const d = s => new Date(s + 'T00:00:00').getTime();
+  const distPrev = Math.abs(d(dateStr) - d(prev[0]));
+  const distNext = Math.abs(d(next[0]) - d(dateStr));
+  const tamil = distPrev <= distNext ? prev[2] : next[2];
+  return { tamil, pirai };
+}
+
+function renderRahuKala() {
+  const grid = document.getElementById('rahuGrid');
+  const today = todayStr();
+  grid.innerHTML = '';
+  const startDate = new Date(currentYear, 0, 1);
+  const endDate = new Date(currentYear, 11, 31);
+  const anchors = getAllAnchors();
+  
+  let currentWeekStart = null;
+  let weekNum = 0;
+  let dayIndex = 0;
+  
+    for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+    const dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const isToday = dateStr === today;
+    const rahuTime = RAHU_KALA_TIMES[d.getDay()];
+    const weekStart = new Date(d);
+    weekStart.setDate(d.getDate() - d.getDay());
+    const weekStartStr = `${weekStart.getFullYear()}-${String(weekStart.getMonth()+1).padStart(2,'0')}-${String(weekStart.getDate()).padStart(2,'0')}`;
+    
+    if (currentWeekStart !== weekStartStr) {
+      currentWeekStart = weekStartStr;
+      weekNum++;
+      const weekEndDate = new Date(weekStart);
+      weekEndDate.setDate(weekStart.getDate() + 6);
+      const weekLabel = document.createElement('div');
+      weekLabel.className = 'rahu-week-label';
+      weekLabel.textContent = `Week ${weekNum}`;
+      grid.appendChild(weekLabel);
+    }
+    
+    const { tamil: tamilMonth, pirai } = tamilInfoForDate(dateStr, anchors);
+    
+    const block = document.createElement('div');
+    block.className = 'rahu-day-block';
+    block.style.animationDelay = `${dayIndex * 0.02}s`;
+    const rahuWaMsg = `Rahu Kala time today: ${rahuTime}. Avoid starting important activities.`;
+    const rahuWaLink = `https://wa.me/?text=${encodeURIComponent(rahuWaMsg)}`;
+    const rahuGcLink = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(`Rahu Kala ${rahuTime}`)}&dates=${dateStr.replace(/-/g,'')}/${new Date(new Date(dateStr).getTime() + 86400000).toISOString().split('T')[0].replace(/-/g,'')}`;
+    block.innerHTML = `<div class="rahu-dot"></div><div class="rahu-day-date">${MONTHS[d.getMonth()].substring(0,3)} ${d.getDate()}</div><div class="rahu-day-dayname">${DAYS[d.getDay()].substring(0,3).toUpperCase()}</div><div class="rahu-info-text"><span style="color:var(--white);font-size:0.62rem;font-weight:600;">Rahu Kala ${rahuTime}</span><span class="rahu-meta">${tamilMonth} · ${pirai}${isToday ? ' TODAY' : ''}</span></div><button class="icon-btn" data-wa="${rahuWaLink}">${WA_SVG}</button><button class="icon-btn" data-gc="${rahuGcLink}">${CALENDAR_SVG}</button>`;
+    
+    const rahuWaBtn = block.querySelector('button:first-of-type');
+    rahuWaBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      window.open(rahuWaBtn.dataset.wa, '_blank');
+    });
+    
+    const rahuGcBtn = block.querySelector('button:last-of-type');
+    rahuGcBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      window.open(rahuGcBtn.dataset.gc, '_blank');
+    });
+    
+    grid.appendChild(block);
+    dayIndex++;
+  }
+}
+
+// ── Nila Query Engine (pure JS, no network call, no AI, no hosting needed) ──
+// Nila grounds her explanations in this text — your own wording, not invented.
+const DAY_TYPE_EXPLANATIONS = {
+  pournami: 'Pournami (Full Moon): The day of the full moon, associated with completeness, clarity, and spiritual energy. Many observe fasting, meditation, and prayers for prosperity, peace, and blessings.',
+  amavasai: 'Amavasai (New Moon): The day with no visible moon, traditionally dedicated to honoring ancestors (Pitru Tarpanam). It is considered important for remembrance, gratitude, and seeking ancestral blessings.',
+  shasti: 'Shashti: The sixth lunar day, especially sacred to Lord Murugan. Devotees observe fasting and prayers for courage, health, protection, and the removal of obstacles.',
+  pradhosham: 'Pradosham: A sacred twilight period on the 13th lunar day, dedicated to Lord Shiva. Worship during this time is believed to help remove negative karma, bring inner peace, and invite divine grace.',
+};
+
+const RAHU_KALA_EXPLANATION = 'Rahu Kala: A daily 90-minute period in Vedic astrology considered unfavorable for starting new ventures. While routine work may continue, many avoid beginning important activities during this time. It is, however, regarded as a good time for prayer and spiritual practices.';
+
+const TYPE_ALIASES = {
+  pournami: ['pournami', 'purnima', 'full moon'],
+  amavasai: ['amavasai', 'amavasya', 'new moon'],
+  shasti: ['shasti', 'shashti', 'sashti'],
+  pradhosham: ['pradhosham', 'pradosham', 'pradosh'],
+};
+
+const NUMBER_WORDS = { one:1, two:2, three:3, four:4, five:5, six:6, seven:7, eight:8, nine:9, ten:10 };
+
+function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+function detectType(lower) {
+  for (const [type, aliases] of Object.entries(TYPE_ALIASES)) {
+    if (aliases.some(a => lower.includes(a))) return type;
+  }
+  return null;
+}
+
+function detectMonth(lower) {
+  for (let i = 0; i < 12; i++) {
+    const full = MONTHS[i].toLowerCase();
+    const abbr = full.slice(0, 3);
+    if (new RegExp(`\\b${full}\\b`).test(lower) || new RegExp(`\\b${abbr}\\b`).test(lower)) return i;
+  }
+  return null;
+}
+
+function detectWeekday(lower) {
+  for (let i = 0; i < 7; i++) {
+    if (new RegExp(`\\b${DAYS[i].toLowerCase()}\\b`).test(lower)) return i;
+  }
+  return null;
+}
+
+function detectNumber(lower) {
+  const digitMatch = lower.match(/\b(\d+)\b/);
+  if (digitMatch) return parseInt(digitMatch[1], 10);
+  for (const [word, n] of Object.entries(NUMBER_WORDS)) {
+    if (new RegExp(`\\b${word}\\b`).test(lower)) return n;
+  }
+  return null;
+}
+
+function formatSacredEntry(e) {
+  const d = new Date(e.date + 'T00:00:00');
+  const day = d.toLocaleDateString('en-IN', { weekday: 'long' });
+  const formatted = d.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+  return `${e.name} — ${day}, ${formatted} (${e.tamil} Masam)`;
+}
+
+function lastAvailableYear() {
+  return Math.max(...Object.keys(SACRED).map(Number));
+}
+
+function rahuForDate(d) {
+  const formatted = d.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  return `Rahu Kala on ${formatted} falls between ${RAHU_KALA_TIMES[d.getDay()]}. It's best to hold off on new beginnings during this window, though prayer and quiet reflection are always welcome.`;
+}
+
+function rahuForWeekday(weekdayIdx) {
+  return `Rahu Kala on ${DAYS[weekdayIdx]} falls between ${RAHU_KALA_TIMES[weekdayIdx]}, every week.`;
+}
+
+function rahuForWeek() {
+  const lines = [];
+  const start = new Date();
+  for (let i = 0; i < 7; i++) {
+    const day = new Date(start);
+    day.setDate(start.getDate() + i);
+    const formatted = day.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' });
+    lines.push(`${formatted}: ${RAHU_KALA_TIMES[day.getDay()]}`);
+  }
+  return `Rahu Kala for the week ahead:\n${lines.join('\n')}`;
+}
+
+function listNextOfType(type, n) {
+  const today = todayStr();
+  const entries = Object.values(SACRED).flat()
+    .filter(e => e.type === type && e.date >= today)
+    .sort((a,b) => a.date.localeCompare(b.date))
+    .slice(0, n);
+  if (entries.length === 0) {
+    return `No upcoming ${capitalize(type)} dates in the calendar right now — the data currently runs through ${lastAvailableYear()}.`;
+  }
+  const label = entries.length === 1 ? `The next ${capitalize(type)}` : `The next ${entries.length} ${capitalize(type)} dates`;
+  return `${label}:\n${entries.map(formatSacredEntry).join('\n')}`;
+}
+
+function listTypeInMonth(type, monthIdx) {
+  const entries = Object.values(SACRED).flat()
+    .filter(e => e.type === type && new Date(e.date + 'T00:00:00').getMonth() === monthIdx)
+    .sort((a,b) => a.date.localeCompare(b.date));
+  if (entries.length === 0) return `No ${capitalize(type)} recorded in ${MONTHS[monthIdx]} in the current data.`;
+  return `${capitalize(type)} in ${MONTHS[monthIdx]}:\n${entries.map(formatSacredEntry).join('\n')}`;
+}
+
+function listAllInMonth(monthIdx) {
+  const entries = Object.values(SACRED).flat()
+    .filter(e => new Date(e.date + 'T00:00:00').getMonth() === monthIdx)
+    .sort((a,b) => a.date.localeCompare(b.date));
+  if (entries.length === 0) return `Nothing recorded for ${MONTHS[monthIdx]} in the current data.`;
+  return `Sacred days in ${MONTHS[monthIdx]}:\n${entries.map(formatSacredEntry).join('\n')}`;
+}
+
+const HELP_MESSAGE = 'I can answer things like "next four Pournami", "Pournami in August", "auspicious days this month", "what is Rahu Kala today", or "explain Pradhosham".';
+
+function answerQuestion(question) {
+  const lower = question.toLowerCase();
+  const type = detectType(lower);
+  const isRahu = /\brahu\b/.test(lower);
+  const month = detectMonth(lower);
+  const number = detectNumber(lower);
+  const weekday = detectWeekday(lower);
+  const wantsNext = /\bnext\b|\bupcoming\b/.test(lower);
+  const wantsToday = /\btoday\b/.test(lower);
+  const wantsTomorrow = /\btomorrow\b/.test(lower);
+  const wantsThisWeek = /\bthis week\b|\bavoid\b/.test(lower);
+  const wantsThisMonth = /\bthis month\b/.test(lower);
+  const wantsExplain = /\bexplain\b|\bwhat does\b|\bmeaning\b|\bmeans\b/.test(lower)
+    || (/\bwhat is\b/.test(lower) && !wantsToday && !wantsTomorrow && weekday === null);
+
+  if (wantsThisWeek) return rahuForWeek();
+
+  if (isRahu) {
+    if (wantsToday) return rahuForDate(new Date());
+    if (wantsTomorrow) { const t = new Date(); t.setDate(t.getDate()+1); return rahuForDate(t); }
+    if (weekday !== null) return rahuForWeekday(weekday);
+    return RAHU_KALA_EXPLANATION;
+  }
+
+  if (type && wantsExplain && month === null && number === null) {
+    return DAY_TYPE_EXPLANATIONS[type];
+  }
+
+  if (type && (wantsNext || number !== null)) {
+    return listNextOfType(type, number || 1);
+  }
+
+  if (type && month !== null) {
+    return listTypeInMonth(type, month);
+  }
+
+  if (month !== null) {
+    return listAllInMonth(month);
+  }
+
+  if (wantsThisMonth) {
+    const currentMonth = new Date().getMonth();
+    return type ? listTypeInMonth(type, currentMonth) : listAllInMonth(currentMonth);
+  }
+
+  if (type) {
+    return listNextOfType(type, 1);
+  }
+
+  return HELP_MESSAGE;
+}
+
+function renderNilaAnswer(question) {
+  const responseEl = document.getElementById('aiResponse');
+  if (!question) return;
+  const text = answerQuestion(question);
+  responseEl.innerHTML = text.replace(/\n/g, '<br>');
+  responseEl.classList.add('visible');
+}
+
+function askNila() {
+  const input = document.getElementById('aiInput');
+  const q = input.value.trim();
+  renderNilaAnswer(q);
+}
+
+function quickAsk(el) {
+  renderNilaAnswer(el.textContent.trim());
+}
+
+document.getElementById('aiInput').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') askNila();
+});
+
+render();
+
+</script>
+</body>
+</html>
